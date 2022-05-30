@@ -45,7 +45,6 @@ const word = ({s, v, w}) => {
 };
 
 const page = ({p, s}) => {
-    console.log(p, s)
     if (p === -1 && s !== -1) {
         return quran.flat(1).map((verse) => embellish(verse)).filter(verse => verse.meta.surah === s+1 && verse.meta.page === surahlist[s].startPage)
     } else if (s === -1 && p !== -1) {
