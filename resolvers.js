@@ -4,6 +4,14 @@ const text = require('./data/text.json')
 const namoonaur = require('./data/tafsirs/namoonaur.json')
 const {embellish, returnRange} = require("./helperFunctions.js")
 const maps = require('./data/maps')
+const fs = require('fs')
+fs.writeFileSync('./data/superquran.json', JSON.stringify(quran.map((surah, index) => {
+    return {
+        ... surahlist[index],
+        verses: surah.map((verse) => embellish(verse)),
+        id: index
+    };
+})));
 
 const surahs = () => {
     return quran.map((surah, index) => {
@@ -181,7 +189,7 @@ const resolvers = {
 
 module.exports = resolvers
 
-fs.writeFileSync('./data/superquran', JSON.stringify(quran.map((surah, index) => {
+fs.writeFileSync('./data/superquran.json', JSON.stringify(quran.map((surah, index) => {
     return {
         ... surahlist[index],
         verses: surah.map((verse) => embellish(verse)),
