@@ -4,18 +4,24 @@ const text = require('./data/text.json')
 const namoonaur = require('./data/tafsirs/namoonaur.json')
 const {embellish, returnRange} = require("./helperFunctions.js")
 const maps = require('./data/maps')
-const superquran = require('./data/superquran.json')
-const fs = require('fs')
 
-const surahs = () => superquran;
+const surahs = () => {
+    return quran.map((surah, index) => {
+        return {
+            ... surahlist[index],
+            verses: surah.map((verse) => embellish(verse)),
+            id: index
+        };
+    });
+};
 
 const surah = ({s, f, t}) => {
     return {
-        ... superquran[s],
+        ... surahlist[s],
         id: s,
-        verses: superquran[s].verses.filter(
+        verses: quran[s].filter(
             (v, i, arr) => i >= (f > -1 ? f : 0) && i < (t > -1 ? t + 1 : arr.length)
-        )
+        ).map((verse) => embellish(verse))
     };
 };
 
@@ -23,8 +29,8 @@ const verse = ({s, v, f, t}) => {
     const _s=v===surahlist[s].count?s+1:s;
     const _v=v===surahlist[s].count?0:v;
     return {
-        ...superquran[_s].verses[_v],
-        words: superquran[_s].verses[_v].words.filter(
+        ...embellish(quran[_s][_v]),
+        words: quran[_s][_v].words.filter(
             (w, i, arr) => i >= (f > -1 ? f : 0) && i < (t > -1 ? t + 1 : arr.length)
         )
     };
@@ -32,7 +38,7 @@ const verse = ({s, v, f, t}) => {
 
 const word = ({s, v, w}) => {
     return {
-        ... superquran[s].verses[v].words[w],
+        ... quran[s][v].words[w],
         surah: s + 1,
         verse: v + 1
     };
@@ -40,11 +46,11 @@ const word = ({s, v, w}) => {
 
 const page = ({p, s}) => {
     if (p === -1 && s !== -1) {
-        return superquran.map(surah=>surah.verses).flat(1).filter(verse => verse.meta.surah === s+1 && verse.meta.page === surahlist[s].startPage)
+        return quran.flat(1).map((verse) => embellish(verse)).filter(verse => verse.meta.surah === s+1 && verse.meta.page === surahlist[s].startPage)
     } else if (s === -1 && p !== -1) {
-        return superquran.map(surah=>surah.verses).flat(1).filter(verse => verse.meta.page === p)
+        return quran.flat(1).map((verse) => embellish(verse)).filter(verse => verse.meta.page === p)
     } else {
-        return superquran.map(surah=>surah.verses).flat(1).filter(verse => verse.meta.page === p && verse.meta.surah === s+1)
+        return quran.flat(1).map((verse) => embellish(verse)).filter(verse => verse.meta.page === p && verse.meta.surah === s+1)
     }
 };
 
