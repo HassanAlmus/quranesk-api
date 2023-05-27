@@ -1,5 +1,5 @@
 const surahlist = require("./data/surahinfo.json")
-const quran = require("./data/quran.text")
+const quran = require("./data/quran.json")
 const text = require('./data/text.json')
 const namoonaur = require('./data/tafsirs/namoonaur.ts')
 const {embellish, returnRange} = require("./helperFunctions.js")
