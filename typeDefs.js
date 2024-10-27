@@ -70,6 +70,7 @@ type Verse {
   fabahrampour: String!
   faayati: String!
   fakhorramshahi: String!
+  khorramdelfa: String!
   escortes: String!
 }
 

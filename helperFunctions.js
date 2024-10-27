@@ -147,6 +147,7 @@ const embellish = (obj) => {
     obj.indopak = obj.words.map((w) => w.indopak).join(" ");
     obj.arabic = obj.words.map((w) => w.arabic).join(" ");
     obj.id = `${si}-${vi}`
+    obj.khorramdelfa = "Tafsir removed."
     return obj;
 };
 
