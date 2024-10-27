@@ -29,7 +29,7 @@ const fabahrampour = require('./data/translations/fa.bahrampour.json');
 const famoezzi = require('./data/translations/fa.moezzi.json');
 const fasadeqi = require('./data/translations/fa.sadeqi.json');
 const famojtabavi = require('./data/translations/fa.mojtabavi.json');
-const esescortes = require('./data/translations/es.escortes.json');
+const escortes = require('./data/translations/es.escortes.json');
 
 const translations = [
     [
@@ -116,7 +116,7 @@ const translations = [
     [
         ruzeynalov, "ruzeynalov"
     ],
-    [esescortes, "esescortes"]
+    [escortes, "escortes"]
 ];
 
 const retrunIsMinusOneList = l => l[0] === -1 && l[1] === -1;

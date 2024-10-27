@@ -70,7 +70,7 @@ type Verse {
   fabahrampour: String!
   faayati: String!
   fakhorramshahi: String!
-  esescortes: String!
+  escortes: String!
 }
 
 type Meta {
