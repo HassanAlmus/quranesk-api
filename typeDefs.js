@@ -42,7 +42,6 @@ type Verse {
   puyaen: [String]!
   chinoyen: [String]!
   namoonaur: [NamoonaTopic]!
-  khorramdelfa: String!
   enahmedali: String!
   enqarai: String!
   ensarwar: String!
@@ -70,8 +69,8 @@ type Verse {
   famojtabavi: String!
   fabahrampour: String!
   faayati: String!
-  fakhorramdel: String!
   fakhorramshahi: String!
+  esescortes: String!
 }
 
 type Meta {

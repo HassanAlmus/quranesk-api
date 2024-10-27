@@ -24,13 +24,12 @@ const puya = require("./data/tafsirs/puya.json");
 const chinoy = require("./data/tafsirs/chinoy.json");
 const namoonaur = require('./data/tafsirs/namoonaur.ts')
 const faayati = require('./data/translations/fa.ayati.json');
-const fakhorramdel = require('./data/translations/fa.khorramdel.json');
 const fakhorramshahi = require('./data/translations/fa.khorramshahi.json');
 const fabahrampour = require('./data/translations/fa.bahrampour.json');
 const famoezzi = require('./data/translations/fa.moezzi.json');
 const fasadeqi = require('./data/translations/fa.sadeqi.json');
 const famojtabavi = require('./data/translations/fa.mojtabavi.json');
-const khorramdelfa = require('./data/tafsirs/khorramdel.json');
+const esescortes = require('./data/translations/es.escortes.json');
 
 const translations = [
     [
@@ -103,9 +102,6 @@ const translations = [
         faayati, "faayati"
     ],
     [
-        fakhorramdel, "fakhorramdel"
-    ],
-    [
         fakhorramshahi, "fakhorramshahi"
     ],
     [
@@ -119,14 +115,15 @@ const translations = [
     ],
     [
         ruzeynalov, "ruzeynalov"
-    ]
+    ],
+    [esescortes, "esescortes"]
 ];
 
 const retrunIsMinusOneList = l => l[0] === -1 && l[1] === -1;
 
 const returnRange = topic => topic[1] === '-' ? [-1, -1] : topic[1].split('-').map(n => Number(n) - 1)
 
-const findNamoona = (s, v) => namoonaur[s].filter(topic => v === 0 ? (retrunIsMinusOneList(returnRange(topic)) || (returnRange(topic) !== [-1, -1] && (returnRange(topic)[1] >= v && returnRange(topic)[0] <= v))) : (returnRange(topic) !== [-1, -1] && (returnRange(topic)[1] >= v && returnRange(topic)[0] <= v)))
+const findNamoona = (s, v) => namoonaur[s].filter(topic => v === 0 ? (retrunIsMinusOneList(returnRange(topic)) || (JSON.stringify(returnRange(topic)) !== JSON.stringify([-1, -1]) && (returnRange(topic)[1] >= v && returnRange(topic)[0] <= v))) : (JSON.stringify(returnRange(topic)) !== JSON.stringify([-1, -1]) && (returnRange(topic)[1] >= v && returnRange(topic)[0] <= v)))
 
 const embellish = (obj) => {
     const si = obj.meta.surah - 1;
@@ -146,7 +143,6 @@ const embellish = (obj) => {
     obj.namoonaur = findNamoona(si, vi).map(topic => {
         return {range: returnRange(topic), title: topic[0], link: topic[2], text: topic[3]}
     })
-    obj.khorramdelfa = khorramdelfa[si][vi]
     obj.uthmani = obj.words.map((w) => w.uthmani).join(" ");
     obj.indopak = obj.words.map((w) => w.indopak).join(" ");
     obj.arabic = obj.words.map((w) => w.arabic).join(" ");
