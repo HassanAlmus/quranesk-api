@@ -224,17 +224,39 @@ const word = async ({s, v, w}) => {
     };
 };
 
-const page = async ({p, s}) => {
+const page = async ({p, s}, _parent, _context, info) => {
     await initDB();
     
-    let query = {};
-    if (p !== -1) query.page = p;
-    if (s !== -1) query.surahNumber = s + 1;
+    let verses;
     
-    const verses = await db.collection('verses')
-        .find(query)
-        .sort({ surahNumber: 1, verseNumber: 1 })
-        .toArray();
+    if (p === -1 && s !== -1) {
+        // Get surah start page
+        const surahInfo = await db.collection('surahs').findOne({ _id: s });
+        if (!surahInfo) return [];
+        
+        verses = await db.collection('verses')
+            .find({ 
+                surahNumber: s + 1, 
+                'meta.page': surahInfo.startPage 
+            })
+            .sort({ verseNumber: 1 })
+            .toArray();
+    } else if (s === -1 && p !== -1) {
+        // Get all verses on page p
+        verses = await db.collection('verses')
+            .find({ 'meta.page': p })
+            .sort({ surahNumber: 1, verseNumber: 1 })
+            .toArray();
+    } else {
+        // Get verses on page p in surah s
+        verses = await db.collection('verses')
+            .find({ 
+                'meta.page': p, 
+                surahNumber: s + 1 
+            })
+            .sort({ verseNumber: 1 })
+            .toArray();
+    }
     
     // Get requested fields from GraphQL query
     const requestedFields = getRequestedFields(info);
@@ -325,7 +347,7 @@ const resolvers = {
             return word(_args);
         },
         page(_parent, _args, _context, _info) {
-            return page(_args);
+            return page(_args, _parent, _context, _info);
         },
         text(_parent, _args, _context, _info) {
             return text(_parent, _args, _context, _info);
