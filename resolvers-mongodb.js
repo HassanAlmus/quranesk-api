@@ -6,6 +6,32 @@ const DB_NAME = 'quran_api';
 let client;
 let db;
 
+// Helper function to get requested fields from GraphQL query
+function getRequestedFields(info) {
+    if (!info || !info.fieldNodes || !info.fieldNodes[0] || !info.fieldNodes[0].selectionSet) {
+        return { hasTranslations: false, hasTafsirs: false };
+    }
+    
+    const selectionSet = info.fieldNodes[0].selectionSet;
+    const selections = selectionSet.selections;
+    const fieldNames = selections.map(sel => sel.name.value);
+    
+    // Check if any translation fields are requested
+    const translationFields = ['enahmedali', 'enqarai', 'ensarwar', 'enyusufali', 'enchinoy', 
+        'trgolpinarli', 'urahmedali', 'urjawadi', 'urnajafi', 'ursafdar', 'azmammadaliyev', 
+        'azmehdiyev', 'deaburida', 'ruzeynalov', 'tjayati', 'fagharaati', 'faansarian', 
+        'famakarem', 'faghomshei', 'fafoolavand', 'frfakhri', 'hijawadi', 'famoezzi', 
+        'faayati', 'fakhorramshahi', 'fasadeqi', 'fabahrampour', 'famojtabavi', 'escortes'];
+    
+    // Check if any tafsir fields are requested
+    const tafsirFields = ['puyaen', 'chinoyen', 'namoonaur', 'khorramdelfa'];
+    
+    const hasTranslations = translationFields.some(field => fieldNames.includes(field));
+    const hasTafsirs = tafsirFields.some(field => fieldNames.includes(field));
+    
+    return { hasTranslations, hasTafsirs };
+}
+
 // Initialize MongoDB connection
 async function initDB() {
     if (!client) {
@@ -27,7 +53,7 @@ const surahs = async () => {
     }));
 };
 
-const surah = async ({s, f, t}) => {
+const surah = async ({s, f, t}, _parent, _context, info) => {
     await initDB();
     
     const surahInfo = await db.collection('surahs').findOne({ surahNumber: s + 1 });
@@ -73,7 +99,7 @@ const surah = async ({s, f, t}) => {
     };
 };
 
-const verse = async ({s, v, f, t}) => {
+const verse = async ({s, v, f, t}, _parent, _context, info) => {
     await initDB();
     
     const verse = await db.collection('verses').findOne({ 
@@ -83,18 +109,90 @@ const verse = async ({s, v, f, t}) => {
     
     if (!verse) return null;
     
-    // Get translations
-    const translations = await db.collection('translations')
-        .find({ 
+    // Get requested fields from GraphQL query
+    const requestedFields = getRequestedFields(info);
+    
+    // Only load translations if they're requested
+    let translations = [];
+    if (requestedFields.hasTranslations) {
+        translations = await db.collection('translations')
+            .find({ 
+                surahNumber: verse.surahNumber, 
+                verseNumber: verse.verseNumber 
+            })
+            .toArray();
+    }
+    
+    // Add translations to verse (map DB keys to schema field names)
+    const translationMap = {
+        'en.ahmedali': 'enahmedali',
+        'en.qarai': 'enqarai', 
+        'en.sarwar': 'ensarwar',
+        'en.yusufali': 'enyusufali',
+        'en.chinoy': 'enchinoy',
+        'tr.golpinarli': 'trgolpinarli',
+        'ur.ahmedali': 'urahmedali',
+        'ur.jawadi': 'urjawadi',
+        'ur.najafi': 'urnajafi',
+        'ur.safdar': 'ursafdar',
+        'az.mammadaliyev': 'azmammadaliyev',
+        'az.mehdiyev': 'azmehdiyev',
+        'de.aburida': 'deaburida',
+        'ru.zeynalov': 'ruzeynalov',
+        'tj.ayati': 'tjayati',
+        'fa.gharaati': 'fagharaati',
+        'fa.ansarian': 'faansarian',
+        'fa.makarem': 'famakarem',
+        'fa.ghomshei': 'faghomshei',
+        'fa.foolavand': 'fafoolavand',
+        'fr.fakhri': 'frfakhri',
+        'hi.jawadi': 'hijawadi',
+        'fa.moezzi': 'famoezzi',
+        'fa.ayati': 'faayati',
+        'fa.khorramshahi': 'fakhorramshahi',
+        'fa.sadeqi': 'fasadeqi',
+        'fa.bahrampour': 'fabahrampour',
+        'fa.mojtabavi': 'famojtabavi',
+        'es.escortes': 'escortes'
+    };
+    
+    translations.forEach(trans => {
+        const fieldName = translationMap[trans.translation] || trans.translation;
+        verse[fieldName] = trans.text;
+    });
+    
+    // Set default values for missing translations to avoid null errors
+    const requiredTranslations = ['enahmedali', 'enqarai', 'ensarwar', 'enyusufali', 'enchinoy', 
+        'trgolpinarli', 'urahmedali', 'urjawadi', 'urnajafi', 'ursafdar', 'azmammadaliyev', 
+        'azmehdiyev', 'deaburida', 'ruzeynalov', 'tjayati', 'fagharaati', 'faansarian', 
+        'famakarem', 'faghomshei', 'fafoolavand', 'frfakhri', 'hijawadi', 'famoezzi', 
+        'faayati', 'fakhorramshahi', 'fasadeqi', 'fabahrampour', 'famojtabavi', 'escortes'];
+    
+    requiredTranslations.forEach(trans => {
+        if (!verse[trans]) {
+            verse[trans] = 'Translation not available';
+        }
+    });
+    
+    // Add tafsir fields only if requested
+    if (requestedFields.hasTafsirs) {
+        const puyaTafsir = await db.collection('tafsirs').findOne({ 
+            tafsir: 'puya', 
             surahNumber: verse.surahNumber, 
             verseNumber: verse.verseNumber 
-        })
-        .toArray();
-    
-    // Add translations to verse
-    translations.forEach(trans => {
-        verse[trans.translation] = trans.text;
-    });
+        });
+        
+        verse.puyaen = puyaTafsir ? [`${s}-${v}-${v}`, puyaTafsir.text] : ['', 'Tafsir not available'];
+        verse.chinoyen = ['', 'Tafsir not available']; // Not migrated yet
+        verse.namoonaur = []; // Not migrated yet
+        verse.khorramdelfa = 'Tafsir removed.';
+    } else {
+        // Set minimal defaults for non-nullable fields
+        verse.puyaen = ['', ''];
+        verse.chinoyen = ['', ''];
+        verse.namoonaur = [];
+        verse.khorramdelfa = '';
+    }
     
     // Filter words if requested
     const words = verse.words.slice(
@@ -138,19 +236,51 @@ const page = async ({p, s}) => {
         .sort({ surahNumber: 1, verseNumber: 1 })
         .toArray();
     
-    // Add translations to verses
+    // Get requested fields from GraphQL query
+    const requestedFields = getRequestedFields(info);
+    
+    // Add translations to verses only if requested
     const versesWithTranslations = await Promise.all(
         verses.map(async (verse) => {
-            const translations = await db.collection('translations')
-                .find({ 
-                    surahNumber: verse.surahNumber, 
-                    verseNumber: verse.verseNumber 
-                })
-                .toArray();
+            if (requestedFields.hasTranslations) {
+                const translations = await db.collection('translations')
+                    .find({ 
+                        surahNumber: verse.surahNumber, 
+                        verseNumber: verse.verseNumber 
+                    })
+                    .toArray();
+                
+                // Map translations
+                const translationMap = {
+                    'en.ahmedali': 'enahmedali', 'en.qarai': 'enqarai', 'en.sarwar': 'ensarwar',
+                    'en.yusufali': 'enyusufali', 'en.chinoy': 'enchinoy', 'tr.golpinarli': 'trgolpinarli',
+                    'ur.ahmedali': 'urahmedali', 'ur.jawadi': 'urjawadi', 'ur.najafi': 'urnajafi',
+                    'ur.safdar': 'ursafdar', 'az.mammadaliyev': 'azmammadaliyev', 'az.mehdiyev': 'azmehdiyev',
+                    'de.aburida': 'deaburida', 'ru.zeynalov': 'ruzeynalov', 'tj.ayati': 'tjayati',
+                    'fa.gharaati': 'fagharaati', 'fa.ansarian': 'faansarian', 'fa.makarem': 'famakarem',
+                    'fa.ghomshei': 'faghomshei', 'fa.foolavand': 'fafoolavand', 'fr.fakhri': 'frfakhri',
+                    'hi.jawadi': 'hijawadi', 'fa.moezzi': 'famoezzi', 'fa.ayati': 'faayati',
+                    'fa.khorramshahi': 'fakhorramshahi', 'fa.sadeqi': 'fasadeqi', 'fa.bahrampour': 'fabahrampour',
+                    'fa.mojtabavi': 'famojtabavi', 'es.escortes': 'escortes'
+                };
+                
+                translations.forEach(trans => {
+                    const fieldName = translationMap[trans.translation] || trans.translation;
+                    verse[fieldName] = trans.text;
+                });
+                
+                // Set defaults for missing translations
+                const requiredTranslations = ['enahmedali', 'enqarai', 'ensarwar', 'enyusufali', 'enchinoy'];
+                requiredTranslations.forEach(trans => {
+                    if (!verse[trans]) verse[trans] = 'Translation not available';
+                });
+            }
             
-            translations.forEach(trans => {
-                verse[trans.translation] = trans.text;
-            });
+            // Set minimal tafsir defaults
+            verse.puyaen = ['', ''];
+            verse.chinoyen = ['', ''];
+            verse.namoonaur = [];
+            verse.khorramdelfa = '';
             
             return {
                 ...verse,
@@ -186,10 +316,10 @@ const resolvers = {
             return surahs();
         },
         surah(_parent, _args, _context, _info) {
-            return surah(_args);
+            return surah(_args, _parent, _context, _info);
         },
         verse(_parent, _args, _context, _info) {
-            return verse(_args);
+            return verse(_args, _parent, _context, _info);
         },
         word(_parent, _args, _context, _info) {
             return word(_args);
